@@ -23,6 +23,7 @@ namespace binance
 		static void connect_endpoint(CB user_cb, const char* path);
 		static void init();
 		static void enter_event_loop();
+		static int run_once(int timeout_ms=1);
 	};
 }
 

@@ -10,13 +10,13 @@
 
 #include <atomic>
 #include <libwebsockets.h>
-#include <map>
+#include <unordered_map>
 
 using namespace binance;
 using namespace std;
 
 static lws_context* context = NULL;
-static map<lws*, CB> handles;
+static unordered_map<lws*, CB> handles;
 
 static atomic<int> lws_service_cancelled(0);
 
@@ -38,8 +38,9 @@ static int event_cb(lws *wsi, enum lws_callback_reasons reason, void *user, void
 				Json::Value json_result;	
 				reader.parse(str_result , json_result);
 
-				if (handles.find(wsi) != handles.end())
-					handles[wsi](json_result);
+				auto iter = handles.find(wsi);
+        if (iter != handles.end())
+					iter->second(json_result);
 			}
 			catch (exception &e)
 			{
@@ -155,5 +156,17 @@ void binance::Websocket::enter_event_loop()
 	atomic_store(&lws_service_cancelled, 0);
 
 	lws_context_destroy(context);
+}
+
+
+int binance::Websocket::run_once(int timeout_ms)
+{
+  int ret = lws_service(context, 1);
+	if (lws_service_cancelled)
+  {
+    lws_context_destroy(context);
+	  atomic_store(&lws_service_cancelled, 0);
+  }
+  return ret;
 }
 
